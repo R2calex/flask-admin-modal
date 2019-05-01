@@ -8,6 +8,7 @@ from flask_admin.helpers import get_redirect_target
 from flask_sqlalchemy import SQLAlchemy
 from flask_admin.contrib.sqla import ModelView
 from flask_admin import Admin, expose
+from numpy import unicode
 from wtforms import HiddenField, IntegerField, Form
 from wtforms.validators import InputRequired
 
@@ -17,7 +18,7 @@ app.config['SECRET_KEY'] = '123456790'
 # Create in-memory database
 app.config['DATABASE_FILE'] = 'sample_db.sqlite'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + app.config['DATABASE_FILE']
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
 
@@ -61,9 +62,10 @@ class ProjectView(ModelView):
             url = get_redirect_target() or self.get_url('.index_view')
             ids = request.form.getlist('rowid')
             joined_ids = ','.join(ids)
-            encoded_ids = base64.b64encode(joined_ids)
+            # joined_ids = joined_ids.encode("UTF-8")
+            # encoded_ids = base64.b64encode(joined_ids)
             change_form = ChangeForm()
-            change_form.ids.data = encoded_ids
+            change_form.ids.data = joined_ids
             self._template_args['url'] = url
             self._template_args['change_form'] = change_form
             self._template_args['change_modal'] = True
@@ -75,8 +77,9 @@ class ProjectView(ModelView):
             url = get_redirect_target() or self.get_url('.index_view')
             change_form = ChangeForm(request.form)
             if change_form.validate():
-                decoded_ids = base64.b64decode(change_form.ids.data)
-                ids = decoded_ids.split(',')
+                # decoded_ids = base64.b64decode(change_form.ids.data)
+                # decoded_ids = decoded_ids.decode("UTF-8")
+                ids = (change_form.ids.data).split(',')
                 cost = change_form.cost.data
                 _update_mappings = [{'id': rowid, 'cost': cost} for rowid in ids]
                 db.session.bulk_update_mappings(Project, _update_mappings)
@@ -115,9 +118,9 @@ def build_sample_db():
 if __name__ == '__main__':
     build_sample_db()
 
-    try:
-        port = int(sys.argv[1])
-    except (IndexError, ValueError):
-        port = 5000
+    # try:
+    #     port = int(sys.argv[1])
+    # except (IndexError, ValueError):
+    #     port = 5000
 
-    app.run(port=port, debug=True)
+    app.run(host="127.0.0.3", port=7000, debug=True)
